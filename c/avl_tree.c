@@ -55,3 +55,22 @@ int update_node_height(AVLNode *node)
         }
     }
 }
+
+int get_balance(AVLNode *node)
+{
+    if (node) {
+        return node->left->height-node->right->height;
+    }
+    else {
+        return ABSENT_NODE_HEIGHT;
+    }
+}
+
+
+int get_height(AVLNode *node)
+{
+    if (!node) {
+        return PERFECT_BALANCE;
+    }
+    return node->height;
+}
