@@ -1,10 +1,13 @@
 #include <stddef.h>
 #include <stdlib.h>
-
 #include "avl_tree.h"
+//--------------------------------------------------------------------------------
 //helper macros
+//--------------------------------------------------------------------------------
 #define MAX(a,b) ((a)>=(b)?(a):(b))
+//--------------------------------------------------------------------------------
 //node manipulation functions
+//--------------------------------------------------------------------------------
 AVLNode *create_avl_node(value_t value,AVLNode *left_child,AVLNode *right_child)
 {
     AVLNode *new_node = (AVLNode *)malloc(sizeof(AVLNode));
@@ -74,3 +77,62 @@ int get_height(AVLNode *node)
     }
     return node->height;
 }
+//--------------------------------------------------------------------------------
+//Tree manipulation functions
+//--------------------------------------------------------------------------------
+//Rotations
+//--------------------------------------------------------------------------------
+/* Left Rotation: let z be the root of a subtree that's heavy on the right subtree of the right child
+ * z
+ *  \
+ *   y          ->     y
+ *    \               / \
+ *     x             z   x
+ */
+
+AVLNode *left_rotate(AVLNode *z)
+{
+    //since we will be placing z as the left child of y,
+    //we need to store the left subtree rooted at y so that
+    //we can recover it later
+    if (z) {
+        AVLNode *y = z->right;
+        if (y) {//may be redundant unless someone made a big mistake!
+            AVLNode *T = y->left;
+            y->left = z;
+            z->right = T;
+            //update heights
+            update_node_height(z);
+            update_node_height(y);
+            return y;
+        }
+    }
+    return NULL;//if z or y were NULL to begin with, return NULL
+} 
+
+/* Right Rotation: let z be the root of a subtree that's heavy on the left subtree of the left child
+  *     z
+  *    /
+  *   y         ->     y
+  *  /                / \
+  * x                x   z
+  * */
+
+
+AVLNode *right_rotate(AVLNode *z)
+{
+    if (z) {
+        AVLNode  *y = z->left;
+        if (y) {
+            AVLNode *T = y->right;
+            y->right = z;
+            z->left = T;
+            //update heights
+            update_node_height(z);
+            update_node_height(y);
+            return y;
+        }
+    }
+    return NULL;//if z or y were NULL to begin with, return NULL
+}
+//--------------------------------------------------------------------------------

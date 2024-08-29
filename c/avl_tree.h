@@ -23,4 +23,8 @@ int update_node_height(AVLNode *node);
 int get_balance(AVLNode *node);
 int get_height(AVLNode *node);
 /*tree manipulation functions*/
+
+//Rotations
+AVLNode *left_rotate(AVLNode *z);
+AVLNode *right_rotate(AVLNode *z);
 #endif
