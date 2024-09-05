@@ -7,6 +7,7 @@ typedef struct AVLNode AVLNode;
 
 typedef struct AVLNode{
     value_t value;
+    AVLNode *parent;
     AVLNode *left;
     AVLNode *right;
     int height;
@@ -21,7 +22,7 @@ typedef struct AVLNode{
 #define PERFECT_BALANCE (0)
 #define UPPER_BALANCE_THRESHOLD (1)
 /*node manipulation functions*/
-AVLNode *create_avl_node(value_t value, AVLNode *left_child, AVLNode *right_child);
+AVLNode *create_avl_node(value_t value, AVLNode *parent, AVLNode *left_child, AVLNode *right_child);
 AVLNode *destroy_avl_node(AVLNode *node);
 int update_node_height(AVLNode *node);
 int get_balance(AVLNode *node);

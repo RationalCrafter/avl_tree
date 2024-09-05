@@ -14,7 +14,7 @@
 //--------------------------------------------------------------------------------
 //node manipulation functions
 //--------------------------------------------------------------------------------
-AVLNode *create_avl_node(value_t value,AVLNode *left_child,AVLNode *right_child)
+AVLNode *create_avl_node(value_t value,AVLNode *parent,AVLNode *left_child,AVLNode *right_child)
 {
     AVLNode *new_node = (AVLNode *)malloc(sizeof(AVLNode));
     if (!new_node) {//failed to allocate memory for new_node
@@ -22,6 +22,7 @@ AVLNode *create_avl_node(value_t value,AVLNode *left_child,AVLNode *right_child)
     }
     new_node->value = value;
     new_node->height=INITIAL_HEIGHT;
+    new_node->parent=parent;
     new_node->left=left_child;
     new_node->right=right_child;
     return new_node;
@@ -35,7 +36,7 @@ AVLNode *destroy_avl_node(AVLNode *node)
 #if DEBUG==1
         printf("\ncall destroy_avl_node: node->value = %d",node->value);
 #endif
-        node->left=node->right=NULL;
+        node->parent=node->left=node->right=NULL;
         free(node);
     }
 #if DEBUG==1
@@ -56,11 +57,19 @@ int update_node_height(AVLNode *node)
         return ABSENT_NODE_HEIGHT;
     }
     else {
-        int left = get_height(node->left);
-        int right = get_height(node->right);
+#if DEBUG==1
+        int prevHeight = node->height;
+#endif
+        int left, right;
+        left=right=INITIAL_HEIGHT;
+        if (node->left)
+            left = get_height(node->left);
+        if (node->right)
+            right = get_height(node->right);
         node->height = 1+MAX(left, right);
 #if DEBUG==1
         printf("\nupdated node height = %d",node->height);
+        printf("\nHeight changed from %d to %d inside update_node_height!",prevHeight,node->height);
 #endif
         return node->height;
     }
@@ -68,12 +77,17 @@ int update_node_height(AVLNode *node)
 
 int get_balance(AVLNode *node)
 {
-    if (node && node->left && node->right) {
-        //return node->left->height-node->right->height;
-        return get_height(node->left)-get_height(node->right);
+    if (node) {
+        int left,right;
+        left=right=INITIAL_HEIGHT;
+        if (node->left)
+            left=get_height(node->left);
+        if (node->right)
+            right=get_height(node->right);
+        return left-right;
     }
     else {
-        return PERFECT_BALANCE;//an absent node can't be unbalanced!
+        return 0;//an absent node can't be unbalanced!
     }
 }
 
@@ -102,9 +116,21 @@ AVLNode *left_rotate(AVLNode *z) {
     if (z) {
         AVLNode *y = z->right; // y is the right child of z
         if (y) {
+            AVLNode *oldParent = z->parent; // the old parent of the current root of this subtree
             AVLNode *T = y->left; // T is the left child of y
+
             y->left = z; // z becomes the left child of y
             z->right = T; // T becomes the right child of z
+            
+            // Update parents
+            z->parent = y;
+            if (T) T->parent = z;
+            y->parent = oldParent;
+            
+            if (oldParent) {
+                if (oldParent->left == z) oldParent->left = y;
+                else oldParent->right = y;
+            }
             
             // Update heights
             update_node_height(z); // Update height of z
@@ -112,7 +138,7 @@ AVLNode *left_rotate(AVLNode *z) {
             return y; // Return new root
         }
     }
-    return NULL; // If z or y were NULL to begin with, return NULL
+    return z; // If z or y were NULL to begin with, return z
 }
 /* Right Rotation: let z be the root of a subtree that's heavy on the left subtree of the left child
   *     z
@@ -123,14 +149,25 @@ AVLNode *left_rotate(AVLNode *z) {
   * */
 
 
-AVLNode *right_rotate(AVLNode *z) 
-{
+AVLNode *right_rotate(AVLNode *z) {
     if (z) {
         AVLNode *y = z->left; // y is the left child of z
         if (y) {
+            AVLNode *oldParent = z->parent; // the old parent of the current root of this subtree
             AVLNode *T = y->right; // T is the right child of y
+
             y->right = z; // z becomes the right child of y
             z->left = T; // T becomes the left child of z
+            
+            // Update parents
+            z->parent = y;
+            if (T) T->parent = z;
+            y->parent = oldParent;
+            
+            if (oldParent) {
+                if (oldParent->left == z) oldParent->left = y;
+                else oldParent->right = y;
+            }
             
             // Update heights
             update_node_height(z); // Update height of z
@@ -138,122 +175,78 @@ AVLNode *right_rotate(AVLNode *z)
             return y; // Return new root
         }
     }
-    return NULL; // If z or y were NULL to begin with, return NULL
-}//--------------------------------------------------------------------------------
+    return z; // If z or y were NULL to begin with, return z
+}
+//--------------------------------------------------------------------------------
 //Insertion
 //--------------------------------------------------------------------------------
 AVLNode *avl_insert(AVLNode **root,value_t key)
 {
     //perform standard BST insertion
-    if (*root == NULL) {
-        *root = create_avl_node(key, NULL, NULL);
+    if (!root || !*root) {
+        *root = create_avl_node(key,NULL, NULL, NULL);
         return *root;
     }
+    //--------------------------------------------------------------------------------
+    //The tree wasn't empty, find a place to put the new node
+    //--------------------------------------------------------------------------------
     AVLNode *y = NULL;
     AVLNode *x = *root;
     while (x) {
         y=x;
-        if(key<x->value)
+        if(key<x->value){
             x=x->left;
-        else
+        }else{
             x=x->right;
+        }
     }
-    if (!y)//tree was empty
-        *root=create_avl_node(key, NULL, NULL);
-   // else if (key<y->value)
-   //     y->left = create_avl_node(key, NULL, NULL); 
-    else
-        y->right = create_avl_node(key, NULL, NULL);
-    //update the height of the ancestor node
-    update_node_height(y);
-    //balance tree
-    int balance = get_balance(y);
-    //left left case
-    //heavy on the left subtree of the left child    
-    if (balance>1 && key<y->left->value) {
-        AVLNode * newRoot = right_rotate(y);
-        update_node_height(newRoot);
-        return newRoot;
+    //--------------------------------------------------------------------------------
+    //insert the new node and remember the spot
+    AVLNode *insertedNode = NULL;
+    //if key is smaller than the y (root of this subtree) make it a left child
+    if (key < y->value) y->left = insertedNode = create_avl_node(key, y, NULL, NULL);
+    else if (key==y->value) {
+        //do nothing, can't have equal keys!
+        return *root;
     }
-    //right right
-    //heavy on the right subtree of the right child
-    if (balance<-1 && key>y->right->value) {
-        AVLNode *newRoot = left_rotate(y);
-        update_node_height(newRoot);
-        return newRoot;
+    //if key is greater than or equal to the root of this subtree make it a right child
+    else y->right = insertedNode = create_avl_node(key, y, NULL, NULL);
+
+    // Update heights and rebalance
+    while (insertedNode) {
+        update_node_height(insertedNode);
+
+        int balance = get_balance(insertedNode);
+
+        // Left Heavy
+        if (balance > 1) {
+            if (get_balance(insertedNode->left) < 0) {
+                insertedNode->left = left_rotate(insertedNode->left);
+            }
+            insertedNode = right_rotate(insertedNode);
+        }
+        // Right Heavy
+        else if (balance < -1) {
+            if (get_balance(insertedNode->right) > 0) {
+                insertedNode->right = right_rotate(insertedNode->right);
+            }
+            insertedNode = left_rotate(insertedNode);
+        }
+
+        insertedNode = insertedNode->parent;
     }
-    //left right
-    //heavy on the right subtree of the left child
-    if (balance>1 && key>y->left->value){
-        y->left=left_rotate(y->left);
-        AVLNode *newRoot = right_rotate(y);
-        update_node_height(newRoot);
-        return newRoot;
+
+    // Ensure root is updated
+    while (*root && (*root)->parent) {
+        *root = (*root)->parent;
     }
-    //right left
-    //heavy on the left subtree of the right child
-    if (balance<-1 && key<y->right->value) {
-        y->right = right_rotate(y->right);
-        AVLNode *newRoot = left_rotate(y);
-        update_node_height(newRoot);
-        return newRoot;
-    }
+
     return *root;
 }
 //--------------------------------------------------------------------------------
 //Destroy AVL Tree
 //--------------------------------------------------------------------------------
 
-
-//AVLNode *destroy_avl_tree(AVLNode **root)
-//{
-//#if DEBUG==1
-//    printf("\ncall destroy_avl_tree");
-//#endif
-//    if (!root || !*root) {
-//#if DEBUG==1
-//        printf("\tdestroy_avl_tree: NULL");
-//#endif
-//        return NULL;
-//    }
-//    else {
-//#if DEBUG==1
-//        printf("\nroot isn't null");
-//        printf("\nPerforming post order traversal");
-//#endif
-//        //perform a postorder traversal and delete nodes
-//        //assume no more than 64 nodes pushed at any time for simplicity
-//        //adjustments can be made as needed later
-//        ArrayStack *nodeStack=create_stack(AUX_STACK_SIZE);
-//        push(nodeStack, *root);
-//        while (!isEmptyStack(nodeStack)) {
-//#if DEBUG==1
-//            printf("\nOnce more into the breach!");
-//#endif
-//            AVLNode *current = pop(nodeStack);
-//#if DEBUG==1
-//            printf("\nPush right child into a stack");
-//#endif
-//            push(nodeStack, current->right);
-//#if DEBUG==1
-//            printf("\nPush left child into a stack");
-//#endif
-//            push(nodeStack, current->left);
-//
-//#if DEBUG==1
-//            printf("\n Current node = %u sent to destroy_avl_node",current);
-//#endif
-//            destroy_avl_node(current);
-//        }
-//#if DEBUG==1
-//        printf("\nGonna destroy stack");
-//#endif
-//        destroy_stack(&nodeStack);
-//
-//        *root = NULL;
-//        return *root;
-//    }
-//}
 
 AVLNode *destroy_avl_tree(AVLNode **root)
 {
