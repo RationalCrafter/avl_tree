@@ -2,11 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "avl_tree.h"
-#include "array_stack/array_stack.h"
 //--------------------------------------------------------------------------------
 //debugging toggle
 //--------------------------------------------------------------------------------
-#define DEBUG 1
+#define DEBUG 0
 //--------------------------------------------------------------------------------
 //helper macros
 //--------------------------------------------------------------------------------
@@ -180,12 +179,12 @@ AVLNode *right_rotate(AVLNode *z) {
 //--------------------------------------------------------------------------------
 //Insertion
 //--------------------------------------------------------------------------------
-AVLNode *avl_insert(AVLNode **root,value_t key)
+void avl_insert(AVLNode **root,value_t key)
 {
     //perform standard BST insertion
     if (!root || !*root) {
         *root = create_avl_node(key,NULL, NULL, NULL);
-        return *root;
+        return ;
     }
     //--------------------------------------------------------------------------------
     //The tree wasn't empty, find a place to put the new node
@@ -202,12 +201,13 @@ AVLNode *avl_insert(AVLNode **root,value_t key)
     }
     //--------------------------------------------------------------------------------
     //insert the new node and remember the spot
+    //--------------------------------------------------------------------------------
     AVLNode *insertedNode = NULL;
     //if key is smaller than the y (root of this subtree) make it a left child
     if (key < y->value) y->left = insertedNode = create_avl_node(key, y, NULL, NULL);
     else if (key==y->value) {
         //do nothing, can't have equal keys!
-        return *root;
+        return ;
     }
     //if key is greater than or equal to the root of this subtree make it a right child
     else y->right = insertedNode = create_avl_node(key, y, NULL, NULL);
@@ -240,8 +240,6 @@ AVLNode *avl_insert(AVLNode **root,value_t key)
     while (*root && (*root)->parent) {
         *root = (*root)->parent;
     }
-
-    return *root;
 }
 //--------------------------------------------------------------------------------
 //Destroy AVL Tree

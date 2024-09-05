@@ -32,7 +32,7 @@ int get_height(AVLNode *node);
 AVLNode *left_rotate(AVLNode *z);
 AVLNode *right_rotate(AVLNode *z);
 //Insertion
-AVLNode *avl_insert(AVLNode **root,value_t key);
+void avl_insert(AVLNode **root,value_t key);
 //Destroy Tree
 AVLNode *destroy_avl_tree(AVLNode **root);
 //Traversal
