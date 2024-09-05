@@ -245,7 +245,6 @@ void avl_insert(AVLNode **root,value_t key)
 //Destroy AVL Tree
 //--------------------------------------------------------------------------------
 
-
 AVLNode *destroy_avl_tree(AVLNode **root)
 {
     if (!root || !*root) {
@@ -257,7 +256,9 @@ AVLNode *destroy_avl_tree(AVLNode **root)
         return *root=destroy_avl_node(*root);
     }
 }
-
+//--------------------------------------------------------------------------------
+//Traversal
+//--------------------------------------------------------------------------------
 void printInorder(AVLNode *root)
 {
     if (root) {
@@ -266,3 +267,111 @@ void printInorder(AVLNode *root)
         printInorder(root->right);
     }
 }
+//--------------------------------------------------------------------------------
+//Search
+//--------------------------------------------------------------------------------
+AVLNode *avl_tree_search(AVLNode *x,value_t key)
+{
+    //recursive implementation of search in an avl tree
+    if (x==NULL || key == x->value) {
+        return x;
+    }
+    if (key<x->value) {
+        return avl_tree_search(x->left, key);
+    }
+    else {
+        return avl_tree_search(x->right, key);
+    }
+}
+
+AVLNode *avl_tree_minimum(AVLNode *x)
+{
+    //returns the minimum value in the subtree rooted at x
+    if (x) {
+        while (x->left) {
+            x=x->left;
+        }
+    }
+    return x;
+}
+
+AVLNode *avl_tree_maximum(AVLNode *x)
+{
+    //returns the minimum value in the subtree rooted at x
+    if (x) {
+        while (x->right) {
+            x=x->right;
+        }
+    }
+    return x;
+}
+
+void avl_delete(AVLNode **root, value_t key) {
+    if (!root || !*root) {
+        return; // Base case: empty tree or null pointer
+    }
+
+    // Perform standard BST delete
+    if (key < (*root)->value) {
+        avl_delete(&(*root)->left, key);
+    } else if (key > (*root)->value) {
+        avl_delete(&(*root)->right, key);
+    } else {
+        // Node with either no children or one child
+        if (!(*root)->left) {
+            // Node with no left child
+            AVLNode *temp = (*root)->right;
+            if (temp) {
+                temp->parent = (*root)->parent; // Update parent pointer of the right child
+            }
+            free(*root); // Free the node
+            *root = temp; // Update root to point to the right child
+        } else if (!(*root)->right) {
+            // Node with no right child
+            AVLNode *temp = (*root)->left;
+            if (temp) {
+                temp->parent = (*root)->parent; // Update parent pointer of the left child
+            }
+            free(*root); // Free the node
+            *root = temp; // Update root to point to the left child
+        } else {
+            // Node with two children
+            AVLNode *temp = avl_tree_minimum((*root)->right); // Find the inorder successor
+            (*root)->value = temp->value; // Replace value with the successor's value
+            avl_delete(&(*root)->right, temp->value); // Delete the inorder successor
+        }
+    }
+
+    if (!*root) {
+        return; // If root is now NULL, nothing to balance
+    }
+
+    // Update height and balance factor of the current node
+    AVLNode *current = *root;
+
+    while (current) {
+        update_node_height(current); // Update height of the current node
+        int balance = get_balance(current); // Calculate balance factor
+
+        // Perform rotations to balance the node
+        if (balance > 1) { // Left heavy
+            if (get_balance(current->left) >= 0) { // Left-Left case
+                *root = right_rotate(current); // Right rotation
+            } else { // Left-Right case
+                current->left = left_rotate(current->left); // Left rotation on left subtree
+                *root = right_rotate(current); // Right rotation
+            }
+        } else if (balance < -1) { // Right heavy
+            if (get_balance(current->right) <= 0) { // Right-Right case
+                *root = left_rotate(current); // Left rotation
+            } else { // Right-Left case
+                current->right = right_rotate(current->right); // Right rotation on right subtree
+                *root = left_rotate(current); // Left rotation
+            }
+        }
+
+        // Move up the tree
+        current = current->parent;
+    }
+}
+
