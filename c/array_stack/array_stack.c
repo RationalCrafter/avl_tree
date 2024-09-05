@@ -43,7 +43,8 @@ bool push(ArrayStack *pStack,val_type val)
             pStack->data[++pStack->top]=val;
             return true;
         }else{
-            printf("\nCan't push: full stack!");
+            printf("\nCan't push: full stack!"
+                   "\n stack top = %d\tstack max_size=%d",pStack->top,pStack->max_size);
         }
     }
     return false;
@@ -75,7 +76,7 @@ bool isEmptyStack(ArrayStack *pStack)
 bool isFullStack(ArrayStack *pStack)
 {
     if (pStack) {
-        if (pStack->top>=(pStack->max_size-1)) {
+        if (pStack->top<=(pStack->max_size-1)) {
             return false;
         }
         else {
