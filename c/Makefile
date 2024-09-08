@@ -1,5 +1,5 @@
 CC = gcc 
-CFLAGS = -Wall -g -O0
+CFLAGS = -Wall -O3
 LDLIBS = -lc
 TARGET = test_avl
 TARGET_NODE = test_node
